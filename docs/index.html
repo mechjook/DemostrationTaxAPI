@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API de Validación Tributaria — Chile</title>
+  <style>
+    :root {
+      --bg-primary: #0F172A;
+      --bg-secondary: #1E293B;
+      --bg-card: #1E293B;
+      --bg-card-hover: #334155;
+      --text-primary: #E2E8F0;
+      --text-secondary: #94A3B8;
+      --text-muted: #64748B;
+      --accent-blue: #3B82F6;
+      --accent-green: #22C55E;
+      --accent-yellow: #EAB308;
+      --accent-orange: #F97316;
+      --accent-red: #EF4444;
+      --accent-purple: #A855F7;
+      --accent-cyan: #06B6D4;
+      --border-color: #334155;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-primary); color: var(--text-primary); line-height: 1.6;
+    }
+
+    /* NAVBAR */
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);
+      padding: 0 2rem; display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+    .navbar-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.1rem; }
+    .nav-links { display: flex; gap: 4px; overflow-x: auto; }
+    .nav-links a {
+      color: var(--text-secondary); text-decoration: none; padding: 6px 14px;
+      border-radius: 6px; font-size: 0.85rem; white-space: nowrap; transition: all 0.2s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--text-primary); background: var(--bg-card-hover); }
+    .status-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(34,197,94,0.15); color: var(--accent-green);
+      padding: 4px 12px; border-radius: 20px; font-size: 0.8rem;
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+    /* LAYOUT */
+    .container { max-width: 1200px; margin: 0 auto; padding: 76px 1.5rem 3rem; }
+    section { margin-bottom: 3rem; scroll-margin-top: 70px; }
+    .section-title {
+      font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem;
+      padding-bottom: 0.5rem; border-bottom: 2px solid var(--accent-blue);
+    }
+    .section-desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1.5rem; max-width: 800px; line-height: 1.7; }
+    .section-desc code { background: rgba(59,130,246,0.12); color: var(--accent-cyan); padding: 1px 6px; border-radius: 4px; font-size: 0.82rem; }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(168,85,247,0.08));
+      border: 1px solid var(--border-color); border-radius: 16px; padding: 2rem 2.5rem; margin-bottom: 2.5rem;
+    }
+    .hero h1 { font-size: 1.6rem; margin-bottom: 0.5rem; }
+    .hero .subtitle { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1rem; max-width: 800px; }
+    .endpoint-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+    .endpoint-tag {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 8px; padding: 4px 12px; font-size: 0.78rem; color: var(--text-secondary);
+    }
+    .endpoint-tag .method { color: var(--accent-green); font-weight: 700; margin-right: 4px; }
+
+    /* CARDS & FORMS */
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;
+    }
+    .card h3 { font-size: 1rem; margin-bottom: 0.3rem; }
+    .card .card-desc { color: var(--text-muted); font-size: 0.8rem; margin-bottom: 1rem; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+    label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.03em; }
+    input, select {
+      width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color);
+      border-radius: 8px; padding: 10px 14px; color: var(--text-primary); font-size: 0.9rem; outline: none;
+    }
+    input:focus, select:focus { border-color: var(--accent-blue); }
+    .btn {
+      background: var(--accent-blue); color: #fff; border: none; padding: 10px 24px;
+      border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600;
+      transition: background 0.2s; margin-top: 1rem;
+    }
+    .btn:hover { background: #2563EB; }
+
+    /* RESULT */
+    .result {
+      background: var(--bg-primary); border: 1px solid var(--border-color);
+      border-radius: 8px; padding: 1rem; margin-top: 1rem; display: none;
+    }
+    .result.show { display: block; animation: fadeIn 0.3s ease-out; }
+    .result-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color); font-size: 0.88rem; }
+    .result-row:last-child { border-bottom: none; }
+    .result-label { color: var(--text-muted); }
+    .result-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .result-value.green { color: var(--accent-green); }
+    .result-value.red { color: var(--accent-red); }
+    .result-value.blue { color: var(--accent-blue); }
+    .result-value.yellow { color: var(--accent-yellow); }
+    .result-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--accent-cyan); }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg-primary); }
+    ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+
+    footer { text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 2rem 0; border-top: 1px solid var(--border-color); }
+    footer a { color: var(--accent-blue); text-decoration: none; }
+
+    /* TABLE */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 0.5rem; }
+    .data-table th { background: var(--bg-primary); color: var(--text-muted); text-transform: uppercase; font-size: 0.72rem; padding: 8px 10px; text-align: left; border-bottom: 2px solid var(--border-color); }
+    .data-table td { padding: 6px 10px; border-bottom: 1px solid var(--border-color); }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-brand"><span>&#9878;</span> Tax API Chile</div>
+  <div class="nav-links">
+    <a href="#rut" class="active">RUT</a>
+    <a href="#iva">IVA</a>
+    <a href="#honorarios">Honorarios</a>
+    <a href="#topes">Cotizaciones</a>
+    <a href="#f29">F29</a>
+    <a href="#acerca">Acerca de</a>
+  </div>
+  <div class="status-badge"><div class="status-dot"></div>Demo interactiva</div>
+</nav>
+
+<div class="container">
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>API de Validación Tributaria — Chile</h1>
+    <p class="subtitle">
+      Microservicio REST para validación y cálculo tributario chileno. Esta página es una
+      <strong>demo interactiva</strong> que replica la lógica de la API con formularios funcionales.
+      Los cálculos se ejecutan en el navegador con la misma lógica que el backend en Python/FastAPI.
+    </p>
+    <p class="subtitle">
+      La API expone 11 endpoints documentados con Swagger UI, modelos Pydantic validados y
+      Dockerfile para containerización.
+    </p>
+    <div class="endpoint-list">
+      <span class="endpoint-tag"><span class="method">POST</span>/api/rut/validar</span>
+      <span class="endpoint-tag"><span class="method">POST</span>/api/iva/desde-neto</span>
+      <span class="endpoint-tag"><span class="method">POST</span>/api/iva/desde-bruto</span>
+      <span class="endpoint-tag"><span class="method">POST</span>/api/iva/factura</span>
+      <span class="endpoint-tag"><span class="method">POST</span>/api/honorarios/retencion</span>
+      <span class="endpoint-tag"><span class="method">POST</span>/api/honorarios/liquido</span>
+      <span class="endpoint-tag"><span class="method">POST</span>/api/honorarios/anual</span>
+      <span class="endpoint-tag"><span class="method">POST</span>/api/topes/cotizaciones</span>
+      <span class="endpoint-tag"><span class="method">GET</span>/api/topes/afps</span>
+      <span class="endpoint-tag"><span class="method">POST</span>/api/f29/simular</span>
+    </div>
+  </div>
+
+  <!-- RUT -->
+  <section id="rut">
+    <div class="section-title">&#128196; Validación de RUT</div>
+    <p class="section-desc">
+      El RUT (Rol Único Tributario) es el identificador fiscal de Chile. El dígito verificador se calcula
+      con el <strong>algoritmo módulo 11</strong>: se multiplican los dígitos por la serie 2-3-4-5-6-7
+      de derecha a izquierda, se suman y se aplica <code>11 - (suma % 11)</code>.
+    </p>
+    <div class="card">
+      <h3>Validar RUT</h3>
+      <p class="card-desc">Ingresa un RUT con o sin formato (ej: 12.345.678-5 o 123456785)</p>
+      <div class="form-grid">
+        <div><label>RUT</label><input type="text" id="rutInput" placeholder="12.345.678-5"></div>
+      </div>
+      <button class="btn" onclick="validarRut()">Validar</button>
+      <div class="result" id="rutResult"></div>
+    </div>
+  </section>
+
+  <!-- IVA -->
+  <section id="iva">
+    <div class="section-title">&#128176; Cálculo de IVA (19%)</div>
+    <p class="section-desc">
+      El IVA en Chile es <strong>19%</strong> sobre el monto neto. Puedes calcular el IVA desde un monto neto
+      (agregar IVA) o desde un monto bruto (extraer IVA incluido). Útil para facturación electrónica.
+    </p>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Desde Monto Neto</h3>
+        <p class="card-desc">Ingresa el monto sin IVA para calcular el bruto</p>
+        <div class="form-grid">
+          <div><label>Monto Neto ($)</label><input type="number" id="ivaNetoInput" placeholder="1000000"></div>
+        </div>
+        <button class="btn" onclick="calcIvaDesdeNeto()">Calcular</button>
+        <div class="result" id="ivaNetoResult"></div>
+      </div>
+      <div class="card">
+        <h3>Desde Monto Bruto</h3>
+        <p class="card-desc">Ingresa el monto con IVA incluido para extraer el neto</p>
+        <div class="form-grid">
+          <div><label>Monto Bruto ($)</label><input type="number" id="ivaBrutoInput" placeholder="1190000"></div>
+        </div>
+        <button class="btn" onclick="calcIvaDesdeBruto()">Calcular</button>
+        <div class="result" id="ivaBrutoResult"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HONORARIOS -->
+  <section id="honorarios">
+    <div class="section-title">&#128221; Retención de Honorarios</div>
+    <p class="section-desc">
+      Las boletas de honorarios en Chile tienen una retención de impuesto que varía por año:
+      2024: 13.75%, 2025: 14.50%, <strong>2026: 15.25%</strong>, 2027+: 17.00%.
+      El pagador retiene el porcentaje y lo entera al SII. El prestador recibe el líquido.
+    </p>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Calcular Retención</h3>
+        <p class="card-desc">Desde el monto bruto de la boleta</p>
+        <div class="form-grid">
+          <div><label>Monto Bruto ($)</label><input type="number" id="honBrutoInput" placeholder="1000000"></div>
+          <div><label>Año</label><select id="honAnioInput"><option value="2024">2024 (13.75%)</option><option value="2025">2025 (14.50%)</option><option value="2026" selected>2026 (15.25%)</option><option value="2027">2027+ (17.00%)</option></select></div>
+        </div>
+        <button class="btn" onclick="calcRetencion()">Calcular</button>
+        <div class="result" id="honBrutoResult"></div>
+      </div>
+      <div class="card">
+        <h3>Desde Líquido Deseado</h3>
+        <p class="card-desc">¿Cuánto bruto necesitas para recibir X líquido?</p>
+        <div class="form-grid">
+          <div><label>Líquido Deseado ($)</label><input type="number" id="honLiquidoInput" placeholder="847500"></div>
+          <div><label>Año</label><select id="honLiqAnioInput"><option value="2024">2024</option><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027+</option></select></div>
+        </div>
+        <button class="btn" onclick="calcDesdeLiquido()">Calcular</button>
+        <div class="result" id="honLiquidoResult"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOPES / COTIZACIONES -->
+  <section id="topes">
+    <div class="section-title">&#128200; Cotizaciones Previsionales</div>
+    <p class="section-desc">
+      Las cotizaciones previsionales se calculan sobre la renta bruta con <strong>topes imponibles</strong>
+      expresados en UF. Incluye AFP (tasa variable por administradora), Salud (7%), AFC (seguro cesantía)
+      y SIS (invalidez y sobrevivencia, cargo empleador).
+    </p>
+    <div class="card">
+      <h3>Calcular Cotizaciones</h3>
+      <p class="card-desc">Ingresa la renta bruta y selecciona tu AFP para ver el desglose completo</p>
+      <div class="form-grid">
+        <div><label>Renta Bruta ($)</label><input type="number" id="rentaInput" placeholder="1500000"></div>
+        <div><label>AFP</label><select id="afpInput"><option>Capital</option><option>Cuprum</option><option selected>Habitat</option><option>PlanVital</option><option>ProVida</option><option>Modelo</option><option>Uno</option></select></div>
+        <div><label>Contrato</label><select id="contratoInput"><option value="indefinido">Indefinido</option><option value="plazo_fijo">Plazo fijo</option></select></div>
+        <div><label>Valor UF ($)</label><input type="number" id="ufInput" value="39842" step="0.01"></div>
+      </div>
+      <button class="btn" onclick="calcCotizaciones()">Calcular</button>
+      <div class="result" id="cotizResult"></div>
+    </div>
+  </section>
+
+  <!-- F29 -->
+  <section id="f29">
+    <div class="section-title">&#128203; Simulador F29</div>
+    <p class="section-desc">
+      El <strong>Formulario 29</strong> es la declaración mensual de IVA al SII. Calcula el débito fiscal
+      (IVA de ventas) menos el crédito fiscal (IVA de compras). Si el débito supera al crédito, se paga la
+      diferencia. Si no, se genera un remanente que se arrastra al mes siguiente. Incluye PPM (1% sobre ventas netas).
+    </p>
+    <div class="card">
+      <h3>Simular Declaración F29</h3>
+      <p class="card-desc">Ingresa ventas y compras netas del período para ver el resultado</p>
+      <div class="form-grid">
+        <div><label>Ventas Netas ($)</label><input type="number" id="f29VentasInput" placeholder="10000000"></div>
+        <div><label>Compras Netas ($)</label><input type="number" id="f29ComprasInput" placeholder="6000000"></div>
+        <div><label>Ventas Exentas ($)</label><input type="number" id="f29ExentasInput" value="0"></div>
+        <div><label>Compras Activo Fijo ($)</label><input type="number" id="f29AFInput" value="0"></div>
+        <div><label>Remanente Anterior ($)</label><input type="number" id="f29RemanInput" value="0"></div>
+        <div><label>Retenciones Honorarios ($)</label><input type="number" id="f29RetInput" value="0"></div>
+      </div>
+      <button class="btn" onclick="calcF29()">Simular F29</button>
+      <div class="result" id="f29Result"></div>
+    </div>
+  </section>
+
+  <!-- ACERCA DE -->
+  <section id="acerca">
+    <div class="section-title">&#9881; Acerca de este Proyecto</div>
+    <div class="grid-2">
+      <div class="card" style="line-height:1.8">
+        <h3 style="color:var(--accent-blue);margin-bottom:0.8rem">Contexto y Objetivo</h3>
+        <p style="color:var(--text-secondary);font-size:0.88rem">
+          Este proyecto demuestra capacidades de <strong style="color:var(--text-primary)">diseño de APIs REST,
+          lógica de negocio tributaria y documentación automática</strong> en el contexto contable chileno.
+        </p>
+        <p style="color:var(--text-secondary);font-size:0.88rem;margin-top:0.8rem">
+          La API implementa 5 dominios tributarios: validación de RUT, cálculo de IVA, retención de honorarios,
+          topes imponibles/cotizaciones y simulador de F29. Cada endpoint tiene modelos Pydantic validados y
+          documentación Swagger generada automáticamente.
+        </p>
+        <p style="color:var(--text-secondary);font-size:0.88rem;margin-top:0.8rem">
+          Esta página es un <strong style="color:var(--text-primary)">demo estática</strong> que replica la lógica
+          de la API en JavaScript para funcionar sin backend en GitHub Pages.
+        </p>
+      </div>
+      <div class="card" style="line-height:1.8">
+        <h3 style="color:var(--accent-purple);margin-bottom:0.8rem">Stack Tecnológico</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:0.6rem;margin-top:0.5rem">
+          <span class="endpoint-tag"><strong>Python 3.12</strong></span>
+          <span class="endpoint-tag"><strong>FastAPI</strong> — API REST</span>
+          <span class="endpoint-tag"><strong>Pydantic</strong> — validación</span>
+          <span class="endpoint-tag"><strong>Swagger/OpenAPI</strong> — docs</span>
+          <span class="endpoint-tag"><strong>pytest + httpx</strong> — tests</span>
+          <span class="endpoint-tag"><strong>Docker</strong> — containerización</span>
+          <span class="endpoint-tag"><strong>GitHub Actions</strong> — CI/CD</span>
+          <span class="endpoint-tag"><strong>GitHub Pages</strong> — demo</span>
+        </div>
+        <p style="color:var(--text-secondary);font-size:0.88rem;margin-top:1rem">
+          Los cálculos implementan normativa tributaria chilena vigente 2026: tasas de retención
+          según reforma tributaria, topes imponibles en UF, tasas AFP actualizadas y lógica F29
+          simplificada con débito/crédito fiscal y PPM.
+        </p>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  API de Validación Tributaria Chile &mdash;
+  <a href="https://github.com/mechjook" target="_blank">@mechjook</a>
+  &mdash; Proyecto de demostración
+</footer>
+
+<script>
+// ===== HELPERS =====
+const fmt = n => "$" + Math.round(n).toLocaleString("es-CL");
+const pct = n => (n * 100).toFixed(2) + "%";
+
+function showResult(id, rows) {
+  const el = document.getElementById(id);
+  el.innerHTML = rows.map(r => {
+    if (r.title) return `<div class="result-title">${r.title}</div>`;
+    return `<div class="result-row"><span class="result-label">${r.label}</span><span class="result-value ${r.cls||''}">${r.value}</span></div>`;
+  }).join("");
+  el.classList.add("show");
+}
+
+// ===== RUT =====
+function calcDV(num) {
+  let suma = 0, mul = 2, temp = num;
+  while (temp > 0) { suma += (temp % 10) * mul; temp = Math.floor(temp / 10); mul++; if (mul > 7) mul = 2; }
+  const r = 11 - (suma % 11);
+  return r === 11 ? "0" : r === 10 ? "K" : String(r);
+}
+function validarRut() {
+  const raw = document.getElementById("rutInput").value.replace(/[.\-\s]/g, "").toUpperCase();
+  if (raw.length < 2) { showResult("rutResult", [{label:"Error",value:"RUT demasiado corto",cls:"red"}]); return; }
+  const cuerpo = raw.slice(0,-1), dv = raw.slice(-1);
+  if (!/^\d+$/.test(cuerpo)) { showResult("rutResult", [{label:"Error",value:"Cuerpo debe ser numérico",cls:"red"}]); return; }
+  const num = parseInt(cuerpo);
+  const dvEsperado = calcDV(num);
+  const valido = dv === dvEsperado;
+  const fmtRut = num.toLocaleString("es-CL") + "-" + dvEsperado;
+  showResult("rutResult", [
+    {label:"RUT formateado", value: fmtRut, cls:"blue"},
+    {label:"Dígito ingresado", value: dv},
+    {label:"Dígito esperado", value: dvEsperado},
+    {label:"Resultado", value: valido ? "VÁLIDO" : "INVÁLIDO", cls: valido ? "green" : "red"},
+  ]);
+}
+
+// ===== IVA =====
+function calcIvaDesdeNeto() {
+  const neto = parseFloat(document.getElementById("ivaNetoInput").value) || 0;
+  const iva = Math.round(neto * 0.19);
+  showResult("ivaNetoResult", [
+    {label:"Monto Neto", value: fmt(neto)},
+    {label:"IVA (19%)", value: fmt(iva), cls:"yellow"},
+    {label:"Monto Bruto", value: fmt(neto + iva), cls:"green"},
+  ]);
+}
+function calcIvaDesdeBruto() {
+  const bruto = parseFloat(document.getElementById("ivaBrutoInput").value) || 0;
+  const neto = Math.round(bruto / 1.19);
+  const iva = bruto - neto;
+  showResult("ivaBrutoResult", [
+    {label:"Monto Bruto", value: fmt(bruto)},
+    {label:"IVA (19%)", value: fmt(iva), cls:"yellow"},
+    {label:"Monto Neto", value: fmt(neto), cls:"green"},
+  ]);
+}
+
+// ===== HONORARIOS =====
+const TASAS_RET = {2024:0.1375, 2025:0.145, 2026:0.1525, 2027:0.17};
+function getTasa(a) { return TASAS_RET[a] || 0.17; }
+function calcRetencion() {
+  const bruto = parseFloat(document.getElementById("honBrutoInput").value) || 0;
+  const anio = parseInt(document.getElementById("honAnioInput").value);
+  const tasa = getTasa(anio);
+  const ret = Math.round(bruto * tasa);
+  showResult("honBrutoResult", [
+    {label:"Monto Bruto", value: fmt(bruto)},
+    {label:`Retención (${pct(tasa)})`, value: fmt(ret), cls:"red"},
+    {label:"Monto Líquido", value: fmt(bruto - ret), cls:"green"},
+  ]);
+}
+function calcDesdeLiquido() {
+  const liq = parseFloat(document.getElementById("honLiquidoInput").value) || 0;
+  const anio = parseInt(document.getElementById("honLiqAnioInput").value);
+  const tasa = getTasa(anio);
+  const bruto = Math.round(liq / (1 - tasa));
+  const ret = bruto - Math.round(liq);
+  showResult("honLiquidoResult", [
+    {label:"Monto Bruto necesario", value: fmt(bruto), cls:"blue"},
+    {label:`Retención (${pct(tasa)})`, value: fmt(ret), cls:"red"},
+    {label:"Líquido a recibir", value: fmt(liq), cls:"green"},
+  ]);
+}
+
+// ===== COTIZACIONES =====
+const AFP_TASAS = {Capital:0.1144,Cuprum:0.1144,Habitat:0.1127,PlanVital:0.1116,ProVida:0.1145,Modelo:0.1058,Uno:0.1069};
+function calcCotizaciones() {
+  const renta = parseFloat(document.getElementById("rentaInput").value) || 0;
+  const afp = document.getElementById("afpInput").value;
+  const contrato = document.getElementById("contratoInput").value;
+  const uf = parseFloat(document.getElementById("ufInput").value) || 39842;
+  const topeAFP = Math.round(90 * uf);
+  const topeCes = Math.round(135.2 * uf);
+  const baseAFP = Math.min(renta, topeAFP);
+  const baseCes = Math.min(renta, topeCes);
+  const tasaAFP = AFP_TASAS[afp] || 0.1127;
+  const cotAFP = Math.round(baseAFP * tasaAFP);
+  const cotSalud = Math.round(baseAFP * 0.07);
+  const afcTrab = contrato === "indefinido" ? Math.round(baseCes * 0.006) : 0;
+  const afcEmpl = contrato === "indefinido" ? Math.round(baseCes * 0.024) : Math.round(baseCes * 0.03);
+  const sis = Math.round(baseAFP * 0.0154);
+  const totalDesc = cotAFP + cotSalud + afcTrab;
+  const liquido = renta - totalDesc;
+  showResult("cotizResult", [
+    {title: "Descuentos Trabajador"},
+    {label:`AFP ${afp} (${pct(tasaAFP)})`, value: fmt(cotAFP), cls:"red"},
+    {label:"Salud (7.00%)", value: fmt(cotSalud), cls:"red"},
+    {label:`AFC Trabajador (${contrato==="indefinido"?"0.60%":"0.00%"})`, value: fmt(afcTrab), cls:"red"},
+    {label:"Total descuentos", value: fmt(totalDesc), cls:"red"},
+    {title: "Costo Empleador"},
+    {label:"SIS (1.54%)", value: fmt(sis), cls:"yellow"},
+    {label:`AFC Empleador (${contrato==="indefinido"?"2.40%":"3.00%"})`, value: fmt(afcEmpl), cls:"yellow"},
+    {title: "Resultado"},
+    {label:"Renta Bruta", value: fmt(renta)},
+    {label:"Renta Líquida Estimada", value: fmt(liquido), cls:"green"},
+    {label:"Base AFP" + (renta > topeAFP ? " (topada)" : ""), value: fmt(baseAFP), cls: renta > topeAFP ? "yellow" : ""},
+  ]);
+}
+
+// ===== F29 =====
+function calcF29() {
+  const ventas = parseFloat(document.getElementById("f29VentasInput").value) || 0;
+  const compras = parseFloat(document.getElementById("f29ComprasInput").value) || 0;
+  const exentas = parseFloat(document.getElementById("f29ExentasInput").value) || 0;
+  const af = parseFloat(document.getElementById("f29AFInput").value) || 0;
+  const reman = parseFloat(document.getElementById("f29RemanInput").value) || 0;
+  const ret = parseFloat(document.getElementById("f29RetInput").value) || 0;
+  const debito = Math.round(ventas * 0.19);
+  const credito = Math.round(compras * 0.19) + Math.round(af * 0.19) + Math.round(reman);
+  const ivaDet = debito - credito;
+  const ivaPagar = Math.max(0, ivaDet);
+  const remanNuevo = ivaDet < 0 ? Math.abs(ivaDet) : 0;
+  const ppm = Math.round(ventas * 0.01);
+  let total = ivaPagar + ppm - Math.round(ret);
+  if (total < 0) total = 0;
+  showResult("f29Result", [
+    {title: "Débito Fiscal (Ventas)"},
+    {label:"Ventas netas", value: fmt(ventas)},
+    {label:"Débito fiscal (19%)", value: fmt(debito), cls:"red"},
+    {title: "Crédito Fiscal (Compras)"},
+    {label:"Compras netas", value: fmt(compras)},
+    {label:"Crédito fiscal total", value: fmt(credito), cls:"green"},
+    {title: "Determinación IVA"},
+    {label:"IVA determinado", value: fmt(ivaDet), cls: ivaDet > 0 ? "red" : "green"},
+    {label:"IVA a pagar", value: fmt(ivaPagar), cls: ivaPagar > 0 ? "red" : "green"},
+    {label:"Remanente nuevo", value: fmt(remanNuevo), cls: remanNuevo > 0 ? "blue" : ""},
+    {title: "PPM y Total"},
+    {label:"PPM (1%)", value: fmt(ppm), cls:"yellow"},
+    {label:"Retenciones honorarios", value: fmt(ret)},
+    {label:"TOTAL A PAGAR", value: fmt(total), cls: total > 0 ? "red" : "green"},
+    {label:"Resultado", value: total > 0 ? "A PAGAR" : "SIN PAGO", cls: total > 0 ? "red" : "green"},
+  ]);
+}
+
+// NAV active
+const sections = document.querySelectorAll("section");
+const navLinks = document.querySelectorAll(".nav-links a");
+window.addEventListener("scroll", () => {
+  let current = "";
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 100) current = s.id; });
+  navLinks.forEach(a => a.classList.toggle("active", a.getAttribute("href") === "#" + current));
+});
+</script>
+</body>
+</html>
